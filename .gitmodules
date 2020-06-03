@@ -1,0 +1,3 @@
+[submodule "miscdata"]
+	path = miscdata
+	url = git@github.com:voidlizard/miscdata.git
