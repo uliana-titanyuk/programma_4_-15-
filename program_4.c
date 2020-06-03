@@ -18,13 +18,15 @@ struct matrix_t {
     float  data[0];
 };
 
-inline void matrix_put(struct matrix_t* m, size_t c, size_t r, float v) {
+static inline void matrix_put(struct matrix_t* m, size_t c, size_t r, float v) {
     assert(m);
+    assert(r < m->rows&& c < m->cols);
     m->data[r * m->cols + c] = v;
 }
 
-inline float matrix_get(struct matrix_t* m, size_t c, size_t r) {
+static inline float matrix_get(struct matrix_t* m, size_t c, size_t r) {
     assert(m);
+    assert(r < m->rows&& c < m->cols);
     return m->data[r * m->cols + c];
 }
 
@@ -38,7 +40,7 @@ struct matrix_t* matrix_new_empty(size_t r, size_t c) {
     return m;
 }
 
-inline size_t matrix_elems(struct matrix_t* m) {
+static inline size_t matrix_elems(struct matrix_t* m) {
     assert(m);
     return m->cols * m->rows;
 }
@@ -53,7 +55,7 @@ bool read_token(FILE* f, float* r) {
             *p++ = c;
         }
         else {
-            ungetc(c, f); 
+            ungetc(c, f); // let's hope for the best
             break;
         }
     }
@@ -69,7 +71,6 @@ struct matrix_t* from_list(struct cell_t* root) {
 struct matrix_t* parse_array(const char* fname) {
     FILE* f = fopen(fname, "r");
     if (!f) {
-        printf("can not open file");
         return 0;
     }
 
@@ -84,8 +85,8 @@ struct matrix_t* parse_array(const char* fname) {
     int    c = 0;
 
     while ((c = fgetc(f)) != EOF) {
-        if (c == '.' || isdigit(c)) {
-            ungetc(c, f); 
+        if (c == '.' || c == '-' || isdigit(c)) {
+            ungetc(c, f); // let's hope for the best
             if (read_token(f, &num)) {
                 struct cell_t* cell = (struct cell_t*)malloc(sizeof(struct cell_t));
                 assert(cell);
@@ -148,6 +149,11 @@ int main(int argc, char** argv) {
 
     struct matrix_t* m = parse_array(fn);
 
+    if (!m) {
+        fprintf(stderr, "could not read input file\n");
+        exit(-1);
+    }
+
     assert(m);
 
     printf("(%d,%d)\n", m->rows, m->cols);
@@ -179,16 +185,15 @@ int main(int argc, char** argv) {
         printf("found avg at col %d\n", *has_avg_p);
     }
 
-    struct matrix_t* m1 = matrix_new_empty(m->rows, m->cols - 1);
+    struct matrix_t* mout = m;
+    struct matrix_t* m1 = 0;
 
-    assert(m1);
-
-    for (j = 0; j < m->rows; j++) {
-        for (i = 0; i < m->cols; i++) {
-            if (!has_avg_p) {
-                matrix_put(m1, i, j, matrix_get(m, i, j));
-            }
-            else {
+    if (has_avg_p) {
+        m1 = matrix_new_empty(m->rows, has_avg_p ? m->cols - 1 : m->cols);
+        assert(m1);
+        mout = m1;
+        for (j = 0; j < m->rows; j++) {
+            for (i = 0; i < m->cols; i++) {
                 if (i < *has_avg_p) {
                     matrix_put(m1, i, j, matrix_get(m, i, j));
                 }
@@ -210,10 +215,10 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    for (j = 0; j < m1->rows; j++) {
-        for (i = 0; i < m1->cols; i++) {
-            printf("%.2f ", matrix_get(m1, i, j));
-            fprintf(out, "%.2f ", matrix_get(m1, i, j));
+    for (j = 0; j < mout->rows; j++) {
+        for (i = 0; i < mout->cols; i++) {
+            printf("%.2f ", matrix_get(mout, i, j));
+            fprintf(out, "%.2f ", matrix_get(mout, i, j));
         }
         printf("\n");
         fprintf(out, "\n");
@@ -221,7 +226,7 @@ int main(int argc, char** argv) {
 
     fclose(out);
     free(m);
-    free(m1);
+    if (m1) free(m1);
 
     return 0;
 }
