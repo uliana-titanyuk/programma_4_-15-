@@ -53,7 +53,7 @@ bool read_token(FILE* f, float* r) {
             *p++ = c;
         }
         else {
-            ungetc(c, f); // let's hope for the best
+            ungetc(c, f); 
             break;
         }
     }
@@ -69,6 +69,7 @@ struct matrix_t* from_list(struct cell_t* root) {
 struct matrix_t* parse_array(const char* fname) {
     FILE* f = fopen(fname, "r");
     if (!f) {
+        printf("can not open file");
         return 0;
     }
 
@@ -84,7 +85,7 @@ struct matrix_t* parse_array(const char* fname) {
 
     while ((c = fgetc(f)) != EOF) {
         if (c == '.' || isdigit(c)) {
-            ungetc(c, f); // let's hope for the best
+            ungetc(c, f); 
             if (read_token(f, &num)) {
                 struct cell_t* cell = (struct cell_t*)malloc(sizeof(struct cell_t));
                 assert(cell);
