@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <math.h>
 
 struct cell_t {
     struct cell_t* cdr;
@@ -30,20 +31,25 @@ static inline float matrix_get(struct matrix_t* m, size_t c, size_t r) {
     return m->data[r * m->cols + c];
 }
 
-struct matrix_t* matrix_new_empty(size_t r, size_t c) {
-    size_t msize = sizeof(struct matrix_t) + c * r * sizeof(float);
-    struct matrix_t* m = (struct matrix_t*)malloc(msize);
-    assert(m);
-    memset(m, 0, msize);
-    m->cols = c;
-    m->rows = r;
-    return m;
-}
-
 static inline size_t matrix_elems(struct matrix_t* m) {
     assert(m);
     return m->cols * m->rows;
 }
+
+struct matrix_t* matrix_new_empty(size_t r, size_t c) {
+    size_t msize = sizeof(struct matrix_t) + c * r * sizeof(float);
+    struct matrix_t* m = (struct matrix_t*)malloc(msize);
+    assert(m);
+    m->cols = c;
+    m->rows = r;
+    const size_t e = matrix_elems(m);
+    size_t i = 0;
+    for (; i < e; i++) {
+        m->data[i] = NAN;
+    }
+    return m;
+}
+
 
 bool read_token(FILE* f, float* r) {
     char token[256] = { 0 };
@@ -136,8 +142,10 @@ float matrix_avg_nn(struct matrix_t* t) {
     float sum = 0;
     size_t k = 0;
     for (; i < len; i++) {
-        sum += t->data[i];
-        k += t->data[i] != 0 ? 1 : 0;
+        if (!isnan(t->data[i])) {
+            sum += t->data[i];
+            k++;
+        }
     }
 
     return sum / k;
